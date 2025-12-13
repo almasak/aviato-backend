@@ -1,10 +1,14 @@
-name: Visibility Test
+name: Worker Task Processor
 
 on:
-  push:
+  repository_dispatch:
+    types: [process-task]
 
 jobs:
-  test:
+  process:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Workflow detected"
+      - name: Print taskId
+        run: |
+          echo "Task ID:"
+          echo "${{ github.event.client_payload.taskId }}"
