@@ -1,5 +1,9 @@
-export default {	async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+export default { async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(req.url);
+		// @ts-expect-error
+		if (!env.GITHUB_TOKEN) {
+		  console.error("Missing GITHUB_TOKEN");
+		}
 
 		// POST /task -> Create a new task
 		if(req.method === 'POST' && url.pathname === '/task') {
@@ -20,33 +24,31 @@ export default {	async fetch(req: Request, env: Env, ctx: ExecutionContext): Pro
 				.run();
 
 			// 3. trigger github actions for background processing
+			console.log("Dispatching to GitHub for task:", taskId);
 			ctx.waitUntil(
-				fetch(
-					"https://api.github.com/repos/almasak/aviato-backend/dispatches",
-					{
-						method: "POST",
-						headers: {
-									// @ts-expect-error
-							        "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
-          							"Accept": "application/vnd.github+json",
-          							"Content-Type": "application/json",
-          							"User-Agent": "cf-worker"
-						},
-						body: JSON.stringify({
-							eventType: "process-task",
-							client_payload: {
-								taskId: taskId
-							}
-						})
-					}
-				)
+			  fetch("https://api.github.com/repos/almasak/aviato-backend/dispatches", {
+			    method: "POST",
+			    headers: {
+				//@ts-expect-error
+			      "Authorization": `token ${env.GITHUB_TOKEN}`,
+			      "Accept": "application/vnd.github+json",
+			      "Content-Type": "application/json",
+			      "User-Agent": "cf-worker"
+			    },
+			    body: JSON.stringify({
+			      event_type: "process-task",
+			      client_payload: { taskId }
+			    })
+			  }).then(async (res) => {
+			    console.log("GitHub dispatch status:", res.status);
+			    console.log("GitHub dispatch response:", await res.text());
+			  })
 			);
-
 			// 4. return payload
 			return Response.json({ taskId });
 		}
 
-		// GET /task:id -> check task status
+		// GET /task/:id -> check task status
 		if(req.method === `GET` && url.pathname.startsWith('/task/')) {
 			const taskId = url.pathname.split('/')[2];
 
