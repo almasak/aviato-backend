@@ -1,4 +1,4 @@
-name: Worker Task Processor
+name: Process Task Worker
 
 on:
   repository_dispatch:
@@ -7,8 +7,35 @@ on:
 jobs:
   process:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Print taskId
+      - name: Log task start
         run: |
-          echo "Task ID:"
-          echo "${{ github.event.client_payload.taskId }}"
+          echo "Task ID: ${{ github.event.client_payload.taskId }}"
+
+      - name: Mark task as running
+        run: |
+          curl -s -X POST "$WORKER_URL/internal/task/start" \
+            -H "Content-Type: application/json" \
+            -H "x-internal-secret: $INTERNAL_SECRET" \
+            -d '{
+              "taskId": "${{ github.event.client_payload.taskId }}"
+            }'
+
+      - name: Do dummy work
+        run: |
+          echo "Doing dummy work..."
+          sleep 5
+
+      - name: Mark task as completed
+        run: |
+          curl -s -X POST "$WORKER_URL/internal/task/complete" \
+            -H "Content-Type: application/json" \
+            -H "x-internal-secret: $INTERNAL_SECRET" \
+            -d '{
+              "taskId": "${{ github.event.client_payload.taskId }}",
+              "result": {
+                "status": "ok",
+                "message": "Dummy work completed"
+              }
+            }'
