@@ -9,6 +9,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug WORKER_URL
+        run: |
+          if [ -z "$WORKER_URL" ]; then
+            echo "❌ WORKER_URL is empty or not set"
+            exit 1
+          fi
+          echo "✅ WORKER_URL=$WORKER_URL"
+
       - name: Log task start
         run: |
           echo "Task ID: ${{ github.event.client_payload.taskId }}"
