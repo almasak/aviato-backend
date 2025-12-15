@@ -28,13 +28,13 @@ function canTransition(from: TaskStatus, to: TaskStatus): boolean {
 
 // Worker entry point
 export default {
-	async fetch(req: Request, env: Env): Promise<Response> {
+	async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(req.url);
 
 		// public APIs
 		// POST /task -> Create a new task
 		if(req.method === 'POST' && url.pathname === '/task') {
-			return createTask(env);
+			return createTask(env, ctx);
 		}
 
 		// GET /task/:taskId -> check task status
@@ -53,7 +53,7 @@ export default {
 };
 
 // create a new task
-async function createTask(env: Env): Promise<Response> {
+async function createTask(env: Env, ctx: ExecutionContext): Promise<Response> {
 	const taskId = crypto.randomUUID();
 	const now = new Date().toISOString();
 
@@ -67,6 +67,27 @@ async function createTask(env: Env): Promise<Response> {
     	.bind(taskId, "pending", now, now)
     	.run();
 
+		console.log("Dispatching GitHub workflow for task:", taskId);
+		ctx.waitUntil(
+    	fetch("https://api.github.com/repos/almasak/aviato-backend/dispatches", {
+    		method: "POST",
+    	  	headers: {
+    	    	Authorization: `token ${env.GITHUB_TOKEN}`,
+    	    	Accept: "application/vnd.github+json",
+    	    	"Content-Type": "application/json",
+    	    	"User-Agent": "cf-worker",
+    	  	},
+    	  	body: JSON.stringify({
+    	    	event_type: "process-task",
+    	    	client_payload: { taskId },
+    	  	}),
+    	}).then(async (res) => {
+    		console.log("GitHub dispatch status:", res.status);
+    	  	if (res.status !== 204) {
+    	    	console.error(await res.text());
+    	  	}
+     	})
+  	);
   	return Response.json({ taskId }, { status: 202 });
 }
 
