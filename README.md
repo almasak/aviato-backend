@@ -1,2 +1,2 @@
 # aviato-backend
-Chrome extension for cheapest flight searches
+Browser extension backend for cheapest flight searches
