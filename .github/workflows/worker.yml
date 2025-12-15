@@ -8,6 +8,10 @@ jobs:
   process:
     runs-on: ubuntu-latest
 
+    env:
+      WORKER_URL: ${{ secrets.WORKER_URL }}
+      INTERNAL_SECRET: ${{ secrets.INTERNAL_SECRET }}
+
     steps:
 
       - name: Dump env names (safe)
