@@ -9,6 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Dump env names (safe)
+        run: |
+          env | sort | grep WORKER || true
+
       - name: Debug WORKER_URL
         run: |
           if [ -z "$WORKER_URL" ]; then
